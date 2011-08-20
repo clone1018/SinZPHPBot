@@ -24,7 +24,7 @@ class operhelper {
      *
      * @return	void
      */
-    public function defcon($user, $channel, $args) {
+    public function defcon($channel, $user, $args) {
         if ($this->isAdmin($user)) {
             $defcon = "DEFCON " . $args[0];
             $this->bot->say_message("OPERSERV", $defcon);
