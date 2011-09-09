@@ -28,7 +28,6 @@ class operhelper {
         if ($this->isAdmin($user)) {
             $defcon = "DEFCON " . $args[0];
             $this->bot->say_message("OPERSERV", $defcon);
-            echo $this->bot->say_message("OPERSERV", $defcon);
         }
     }
     
@@ -40,7 +39,6 @@ class operhelper {
     public function gline($user, $channel, $args) {
         if ($this->isAdmin($user)) {
             $this->bot->raw("/GLINE ".$user." ".$args);
-            echo $this->bot->raw("/GLINE ".$user." ".$args);
         }
     }
 
