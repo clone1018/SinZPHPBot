@@ -24,11 +24,21 @@ class operhelper {
      *
      * @return	void
      */
-    public function defcon($user, $channel, $args) {
+    public function defcon($channel, $user, $args) {
         if ($this->isAdmin($user)) {
             $defcon = "DEFCON " . $args[0];
             $this->bot->say_message("OPERSERV", $defcon);
-            echo $this->bot->say_message("OPERSERV", $defcon);
+        }
+    }
+    
+    /**
+     * Defcon Command
+     *
+     * @return    void
+     */
+    public function gline($user, $channel, $args) {
+        if ($this->isAdmin($user)) {
+            $this->bot->raw("/GLINE ".$user." ".$args);
         }
     }
 

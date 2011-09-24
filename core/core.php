@@ -10,7 +10,7 @@
 class Core extends Bot {
 
     function __construct() {
-        $this->config = $config;
+        
     }
     
     /*
@@ -21,7 +21,8 @@ class Core extends Bot {
      * @return string
      */
     public function ping($server) {
-        $this->bot->raw("PONG ", $server);
+        $this->bot = new bot();
+        $this->bot->raw("PONG", $server);
     }
     
     public function privmsg() {

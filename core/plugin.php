@@ -60,7 +60,7 @@ class Plugin extends Bot {
         $args = array_splice($args, 1);
         foreach($this->plugins as $plugin) {
             if(class_exists($plugin) && method_exists($plugin, $command)) {
-                call_user_func_array(array($plugin, $name));
+                call_user_func_array(array($channel, $user, $args));
             }
         }
     }

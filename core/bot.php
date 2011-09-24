@@ -162,7 +162,7 @@ class Bot {
         $this->colors = new Colors();
         if (!$this->sock) {
             $this->connect();
-            $this->startup();
+            $this->startup(); 
         }
         while (!feof($this->sock)) {
             $line = fgets($this->sock);
@@ -186,4 +186,3 @@ class Bot {
     }
 
 }
-
