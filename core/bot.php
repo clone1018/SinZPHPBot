@@ -11,6 +11,7 @@
 class Bot {
 
     private $sock = null;
+    var $lock = false;
 
     public function _construct($config) {
         
@@ -44,11 +45,12 @@ class Bot {
             echo "Loading 0 plugins. \n";
         } elseif (count($config['plugins']) == 1) {
             include "./plugins/" . $config['plugins'][0] . "/plugin.php";
-            $this->plugin->register(new $config['plugins'][0]($this->config));
+            $this->$config['plugins'][0] = new $config['plugins'][0];
+            $this->plugin->register($config['plugins'][0]);
             echo "Loading " . count($config['plugins']) . " plugins.\n";
         } else {
             foreach ($config['plugins'] as $plugin) {
-                include "./plugins/" . $plugin . "/plugin.php";
+                include "../plugins/" . $plugin . "/plugin.php";
                 $this->plugin->register(new $plugin($this->config));
                 $count++;
             }
@@ -67,8 +69,6 @@ class Bot {
     public function startup() {
         global $config;
 
-        $this->raw("NICK " . $config['nick']);
-        $this->raw('USER ' . $config['ident'] . ' 8 * :' . $config['realname']);
         if ($config['ns_enabled'])
             $this->raw("PRIVMSG " . $config['ns_nickserv'] . " IDENTIFY " . $config['ns_pass']);
         if ($config['channels']) {
@@ -91,29 +91,11 @@ class Bot {
      * @return void
      */
 
-    public function raw() {
+    public function raw($cmd) {
         $this->colors = new Colors();
-        $args = func_get_args();
-        $out = array();
-        if ($prefix) {
-            $out[] = ":{$prefix}";
-        }
-        $cont = false;
-        foreach ($args as $index => $arg) {
-            if (strpos($arg, " ") !== true) {
-                $out[] = $arg;
-            } else {
-                $cont = true;
-                break;
-            }
-        }
-        if ($cont) {
-            $out[] = ':' . implode(" ", array_splice($args, $index));
-        }
-        $this->buffer .= implode(" ", $out) . "\n";
-        fputs($this->sock, $this->buffer . "\r\n");
+        $this->buffer .= $cmd . "\n";
         echo $this->colors->getColoredString("RAW: ", "blue");
-        echo implode(" ", $out) . "\n";
+        echo $cmd . "\r\n";
     }
 
     public function connect() {
@@ -123,6 +105,8 @@ class Bot {
         $this->sock = fsockopen($config['network'], $config['port'], $errno, $errstr, 32768);
         stream_set_timeout($this->sock, 2);
         $errorlevel = stream_get_meta_data($this->sock);
+        $this->raw("NICK " . $config['nick']);
+        $this->raw('USER ' . $config['ident'] . ' 8 * :' . $config['realname']);
 
         if ($errorinfo['timed_out']) {
             echo 'Connection timed out!';
@@ -137,7 +121,7 @@ class Bot {
     }
 
     public function privmsg($who, $msg) {
-        $this->raw("PRIVMSG" . $who . ":" . $msg);
+        $this->raw("PRIVMSG " . $who . " : " . $msg);
     }
 
     /*
@@ -158,25 +142,38 @@ class Bot {
      */
 
     public function start() {
+        global $config;
         $this->plugin = new Plugin();
         $this->colors = new Colors();
         if (!$this->sock) {
             $this->connect();
-            $this->startup(); 
         }
         while (!feof($this->sock)) {
             $line = fgets($this->sock);
             if (isset($line))
                 echo $line;
             $command = $this->parse_message($line);
+            if (strpos($line, 'End of /MOTD') !== false)
+                $this->startup();
 
+            //var_dump($command);
 
             if (strpos($line, 'PING ') !== false) {
-                var_dump($command);
                 $this->raw('PONG ' . $command[1]);
-            } elseif (strstr($command, $this->config['command'])) {
+            } elseif (strstr($command[3], $config['command'])) {
                 // This is a command, or possibly a command, send it to it's plugin.
-                $this->plugin->event($plugin, $commend, $args);
+                $class = str_replace($config['command'], '', $command[3]);
+                $class = str_replace(':', '', $class);
+                $user = explode('!', $command[0]);
+                $user = str_replace(':', '', $user);
+                $args = array(
+                    'channel' => $command[2],
+                    'user' => $user[0]
+                );
+                if (class_exists($class, false)) {
+                    $this->plugin->event($class, $command[4], $args);
+                    //echo $class, $command[4], $args;
+                }
             } else {
                 if ($command != null) //echo json_encode($command)."\n";
                     continue;

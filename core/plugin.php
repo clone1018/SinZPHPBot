@@ -40,7 +40,7 @@ class Plugin extends Bot {
 
     public function register($class) {
         $this->plugins[] = $class;
-        $class->__construct($this);
+        //$class->__construct($this);
     }
 
     /*
@@ -51,17 +51,18 @@ class Plugin extends Bot {
      * @return void
      */
 
-    public function event($plugin, $command, $args) {
-        $plugin = strtolower($plugin);
+    public function event($class, $command, $args) {
+        $plugin = strtolower($class);
         $command = strtolower($command);
-        echo $plugin;
         
-        $args = func_get_args();
-        $args = array_splice($args, 1);
-        foreach($this->plugins as $plugin) {
-            if(class_exists($plugin) && method_exists($plugin, $command)) {
-                call_user_func_array(array($channel, $user, $args));
-            }
+        //$class::$command($args['channel'], $args['user'], $args['args']);
+
+
+
+        General::test($args['channel'], $args['user'], $args['args']);
+        if(method_exists($plugin, $command)) {
+            echo "Class and Function Loaded \r\n";
+            call_user_func($command, $args);
         }
     }
 
