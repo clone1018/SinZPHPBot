@@ -93,7 +93,7 @@ class Bot {
 
     public function raw($cmd) {
         $this->colors = new Colors();
-        $this->buffer .= $cmd . "\n";
+        fputs($this->sock, $cmd . "\r\n");
         echo $this->colors->getColoredString("RAW: ", "blue");
         echo $cmd . "\r\n";
     }
