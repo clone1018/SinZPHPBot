@@ -66,6 +66,9 @@ class Bot {
 
     public function startup() {
         global $config;
+
+        $this->raw("NICK " . $config['nick']);
+        $this->raw('USER ' . $config['ident'] . ' 8 * :' . $config['realname']);
         if ($config['ns_enabled'])
             $this->raw("PRIVMSG " . $config['ns_nickserv'] . " IDENTIFY " . $config['ns_pass']);
         if ($config['channels']) {
@@ -108,18 +111,9 @@ class Bot {
             $out[] = ':' . implode(" ", array_splice($args, $index));
         }
         $this->buffer .= implode(" ", $out) . "\n";
+        fputs($this->sock, $this->buffer . "\r\n");
         echo $this->colors->getColoredString("RAW: ", "blue");
         echo implode(" ", $out) . "\n";
-    }
-
-    /*
-     * Parse Message
-     * 
-     * Converts the message to .class function args
-     */
-    private function parse_message($line) {
-        $line = explode(" ",$line);   
-        return $line;
     }
 
     public function connect() {
@@ -130,34 +124,9 @@ class Bot {
         stream_set_timeout($this->sock, 2);
         $errorlevel = stream_get_meta_data($this->sock);
 
-        $this->send_message("", "NICK", $config['nick']);
-        $this->send_message("", "USER", $config['ident'], "8", "*", $config['realname']);
         if ($errorinfo['timed_out']) {
             echo 'Connection timed out!';
         }
-        $this->startup();
-    }
-
-    public function send_message($prefix) {
-        $args = func_get_args();
-        $out = array();
-        if ($prefix) {
-            $out[] = ":{$prefix}";
-        }
-        $cont = false;
-        foreach ($args as $index => $arg) {
-            if (strpos($arg, " ") !== true) {
-                $out[] = $arg;
-            } else {
-                $cont = true;
-                break;
-            }
-        }
-        if ($cont) {
-            $out[] = ':' . implode(" ", array_splice($args, $index));
-        }
-        $this->buffer .= implode(" ", $out) . "\n";
-        echo "sent: " . implode(" ", $out) . "\n";
     }
 
     public function flush_message() {
@@ -171,22 +140,47 @@ class Bot {
         $this->raw("PRIVMSG" . $who . ":" . $msg);
     }
 
+    /*
+     * Parse Message
+     * 
+     * Converts the message to .class function args
+     */
+
+    private function parse_message($line) {
+        $line = explode(" ", $line);
+        return $line;
+    }
+
+    /*
+     * Start
+     * 
+     * Starts the server
+     */
+
     public function start() {
         $this->plugin = new Plugin();
         $this->colors = new Colors();
         if (!$this->sock) {
             $this->connect();
+            $this->startup();
         }
         while (!feof($this->sock)) {
             $line = fgets($this->sock);
-            list($prefix, $plugin, $command, $args) = $this->parse_message($line);
-            //echo "prefix: {$prefix}, args: ",json_encode($args),"\n";
-            echo json_encode(array($prefix, $command, $args)), "\n";
-            if ($command == "PING") {
-                $this->raw("PONG " . $args[0]);
+            if (isset($line))
+                echo $line;
+            $command = $this->parse_message($line);
+
+
+            if (strpos($line, 'PING ') !== false) {
+                var_dump($command);
+                $this->raw('PONG ' . $command[1]);
+            } elseif (strstr($command, $this->config['command'])) {
+                // This is a command, or possibly a command, send it to it's plugin.
+                $this->plugin->event($plugin, $commend, $args);
+            } else {
+                if ($command != null) //echo json_encode($command)."\n";
+                    continue;
             }
-            $this->plugin->event($prefix, $plugin, $command, $args);
-            //echo $prefix.$command.$args;
             $this->flush_message();
         }
     }

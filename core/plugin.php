@@ -51,7 +51,7 @@ class Plugin extends Bot {
      * @return void
      */
 
-    public function event($prefix, $plugin, $command, $args) {
+    public function event($plugin, $command, $args) {
         $plugin = strtolower($plugin);
         $command = strtolower($command);
         echo $plugin;
